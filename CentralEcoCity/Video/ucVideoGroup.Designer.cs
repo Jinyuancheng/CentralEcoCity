@@ -47,6 +47,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(1)))), ((int)(((byte)(1)))), ((int)(((byte)(1)))));
             this.Controls.Add(this.pnlShape);
+            this.DoubleBuffered = true;
             this.Name = "ucVideoGroup";
             this.Size = new System.Drawing.Size(472, 309);
             this.Resize += new System.EventHandler(this.ucVideoGroup_Resize);

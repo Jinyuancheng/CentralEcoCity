@@ -44,6 +44,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.ucVGSHow);
+            this.DoubleBuffered = true;
             this.Name = "ucVideo";
             this.Size = new System.Drawing.Size(908, 548);
             this.ResumeLayout(false);

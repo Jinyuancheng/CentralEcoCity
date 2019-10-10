@@ -40,7 +40,7 @@ namespace CentralEcoCity.Video
         private MSGCallBack_V31 m_MsgCallbackHik;   //海康api的回调函数
         private pReadIniCallBack m_funcReadIniMsg;  //读取配置文件的回调函数
         private List<CLoginInfo> m_lstLoginInfo;    //存储设备登录信息
-        private Thread m_oThreadLogin;//该线程用来登录主机
+        //private Thread m_oThreadLogin;//该线程用来登录主机
         private object m_oSingleLock = null;//线程锁
 
         private string m_sCapPicPath;   //抓拍图片的存储路径
@@ -60,8 +60,8 @@ namespace CentralEcoCity.Video
             m_funcReadIniMsg = new pReadIniCallBack(ReadIniCallBack);
             m_lstLoginInfo = new List<CLoginInfo>();
             m_oSingleLock = new object();
-            m_oThreadLogin = new Thread(ThreadLogin);
-            m_oThreadLogin.Start();
+            //m_oThreadLogin = new Thread(ThreadLogin);
+            //m_oThreadLogin.Start();
 
             m_sCapPicPath = "";
             m_sVsClientPath = "";
@@ -324,6 +324,55 @@ namespace CentralEcoCity.Video
             return iChannel;
         }
 
+        /// <summary>
+        /// 海康主机登录
+        /// </summary>
+        public void HikHostLogin()
+        {
+            if (m_lstLoginInfo.Count > 0)
+            {
+                for (int i = 0; i < m_lstLoginInfo.Count; i++)
+                {
+                    if (m_lstLoginInfo[i].iHandle == -1)
+                    {
+                        NET_DVR_USER_LOGIN_INFO struLoginInfo = new NET_DVR_USER_LOGIN_INFO();
+                        NET_DVR_DEVICEINFO_V40 devInfor = new NET_DVR_DEVICEINFO_V40();
+                        devInfor.byRes2 = new byte[246];
+                        devInfor.struDeviceV30.sSerialNumber = new byte[48];
+                        devInfor.byRes2 = new byte[246];
+                        devInfor.struDeviceV30.sSerialNumber = new byte[48];
+                        struLoginInfo.sDeviceAddress = m_lstLoginInfo[i].sIp;
+                        struLoginInfo.wPort = Convert.ToUInt16(m_lstLoginInfo[i].sPort); //设备服务端口
+                        struLoginInfo.sUserName = m_lstLoginInfo[i].sUser; //设备登录用户名
+                        struLoginInfo.sPassword = m_lstLoginInfo[i].sPass; //设备登录密码
+                        struLoginInfo.bUseAsynLogin = false; //同步登录方式（异步现在设备不在线时会报错，不知道啥原因）
+                        struLoginInfo.byLoginMode = 0;
+                        //struLoginInfo.byHttps = 2;
+                        //m_lstLoginInfo[i].iHandle = HikVideoAPI.NET_HIK_Login_V40(ref struLoginInfo, ref devInfor);
+                        m_lstLoginInfo[i].iHandle = CHCNetSDK.NET_DVR_Login_V40(ref struLoginInfo, ref devInfor);
+                        //将通道信息和对应的ip存储到list集合中
+                        if (m_lstLoginInfo[i].iHandle >= 0)
+                        {
+                            NET_DVR_IPPARACFG_V40 oIpParaCfgV40 = new NET_DVR_IPPARACFG_V40();
+                            uint dwSize = (uint)Marshal.SizeOf(oIpParaCfgV40);
+                            IntPtr ptrIpParaCfgV40 = Marshal.AllocHGlobal((Int32)dwSize);
+                            Marshal.StructureToPtr(oIpParaCfgV40, ptrIpParaCfgV40, false);
+                            uint dwReturn = 0;
+                            //int iGroupNo = 0; //该Demo仅获取第一组64个通道，如果设备IP通道大于64路，需要按组号0~i多次调用NET_DVR_GET_IPPARACFG_V40获取
+                            for (int iGroupNo = 0; iGroupNo < 4; iGroupNo++)
+                            {
+                                if (CHCNetSDK.NET_DVR_GetDVRConfig(m_lstLoginInfo[i].iHandle, CHCNetSDK.NET_DVR_GET_IPPARACFG_V40, iGroupNo, ptrIpParaCfgV40, dwSize, ref dwReturn))
+                                {
+                                    oIpParaCfgV40 = (CHCNetSDK.NET_DVR_IPPARACFG_V40)Marshal.PtrToStructure(ptrIpParaCfgV40, typeof(CHCNetSDK.NET_DVR_IPPARACFG_V40));
+                                    m_lstStruIpParaCfgV40.Add(oIpParaCfgV40);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         #region 添加对外的接口
         /// <summary>
         /// 添加主机信息
@@ -360,6 +409,8 @@ namespace CentralEcoCity.Video
                 oLoginInfo.sPass = _sPass;
                 m_lstLoginInfo.Add(oLoginInfo);
             }
+            /*\ 执行登录 /*/
+            HikHostLogin();
         }
         /// <summary>
         /// 初始化
